@@ -4,6 +4,8 @@ End-to-end Databricks demo: a Spark Declarative Pipeline that builds a **knowled
 
 Built as a Declarative Automation Bundle (`bundle.engine = direct`) targeting Serverless v5 on the `fevm` profile.
 
+![Network Anomaly Graph app — force-directed view with red anomaly clusters](docs/img/app-screenshot.png)
+
 ---
 
 ## Quick start
