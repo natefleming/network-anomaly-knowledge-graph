@@ -1,0 +1,24 @@
+resources:
+  schemas:
+    network_anomaly_graph:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: "Network-traffic anomaly knowledge graph (bronze → silver → gold → graph)."
+      grants:
+        - principal: account users
+          privileges:
+            - USE_SCHEMA
+            - SELECT
+            - EXECUTE
+
+  volumes:
+    bronze_landing:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.network_anomaly_graph.name}
+      name: ${var.volume_name}
+      volume_type: MANAGED
+      comment: "Auxiliary parquet exports / staging for the network anomaly demo."
+      grants:
+        - principal: account users
+          privileges:
+            - READ_VOLUME

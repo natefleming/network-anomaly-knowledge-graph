@@ -1,0 +1,52 @@
+resources:
+  apps:
+    network_anomaly_app:
+      name: network-anomaly-app
+      description: "Interactive network-traffic knowledge graph — anomaly detection visualization (React + react-force-graph-2d + FastAPI)."
+      source_code_path: ../app
+      resources:
+        # SQL Warehouse the FastAPI backend queries
+        - name: warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+
+        # Gold knowledge-graph tables — declaring them as app resources grants
+        # the App service principal SELECT on each table (and the transitive
+        # USE_CATALOG / USE_SCHEMA grants on parents) at deploy time, so we
+        # don't need to manually re-grant after every schema rebuild.
+        - name: gold_graph_nodes
+          uc_securable:
+            securable_full_name: ${var.catalog}.${var.schema}.gold_graph_nodes
+            securable_type: TABLE
+            permission: SELECT
+        - name: gold_graph_edges
+          uc_securable:
+            securable_full_name: ${var.catalog}.${var.schema}.gold_graph_edges
+            securable_type: TABLE
+            permission: SELECT
+        - name: gold_anomaly_scan
+          uc_securable:
+            securable_full_name: ${var.catalog}.${var.schema}.gold_anomaly_scan
+            securable_type: TABLE
+            permission: SELECT
+        - name: gold_anomaly_lateral
+          uc_securable:
+            securable_full_name: ${var.catalog}.${var.schema}.gold_anomaly_lateral
+            securable_type: TABLE
+            permission: SELECT
+        - name: gold_anomaly_exfil
+          uc_securable:
+            securable_full_name: ${var.catalog}.${var.schema}.gold_anomaly_exfil
+            securable_type: TABLE
+            permission: SELECT
+        - name: gold_anomaly_rogue
+          uc_securable:
+            securable_full_name: ${var.catalog}.${var.schema}.gold_anomaly_rogue
+            securable_type: TABLE
+            permission: SELECT
+        - name: gold_anomaly_ddos
+          uc_securable:
+            securable_full_name: ${var.catalog}.${var.schema}.gold_anomaly_ddos
+            securable_type: TABLE
+            permission: SELECT

@@ -1,0 +1,59 @@
+bundle:
+  name: network-anomaly-knowledge-graph
+  uuid: 7c8e3a90-2fe2-4d4d-a9b1-2c9b3a1f0011
+
+# Direct deployment engine — selected via the DATABRICKS_BUNDLE_ENGINE=direct env var on
+# deploy/validate. Required for declaring catalogs/schemas/grants in the bundle (CLI 0.279.0+).
+
+include:
+  - resources/*.yml
+
+sync:
+  exclude:
+    # Don't ship node_modules — they don't run on the App runtime
+    - app/node_modules
+    # Skip Node toolchain files so Databricks Apps doesn't try to npm install/build
+    # at runtime. We pre-build dist/ locally and ship the static output.
+    - app/package.json
+    - app/package-lock.json
+    - app/tsconfig.json
+    - app/tsconfig.tsbuildinfo
+    - app/vite.config.ts
+    - app/src
+    - app/index.html
+    - app/.vite
+    - "**/.DS_Store"
+    - "**/__pycache__"
+    - "**/*.pyc"
+
+variables:
+  catalog:
+    description: Unity Catalog name for the demo
+    default: retail_consumer_goods
+  schema:
+    description: UC schema for the demo
+    default: network_anomaly_graph
+  volume_name:
+    description: Managed volume for any auxiliary artifacts
+    default: bronze_landing
+  warehouse_id:
+    description: SQL Warehouse id used by the Databricks App
+    lookup:
+      warehouse: Serverless Starter Warehouse
+  serverless_env_version:
+    description: Serverless environment version for jobs / SDP
+    default: "5"
+  notebook_root:
+    description: Workspace path prefix where bundle files land (computed at deploy time)
+    default: "${workspace.file_path}"
+
+targets:
+  fevm:
+    default: true
+    mode: production
+    workspace:
+      profile: fevm
+      root_path: /Workspace/Users/${workspace.current_user.userName}/network-anomaly
+    variables:
+      catalog: retail_consumer_goods
+      schema: network_anomaly_graph

@@ -1,0 +1,4 @@
+# The retail_consumer_goods catalog already exists on this metastore. We don't
+# attempt to recreate it here — only declare grants on it via the schema/volume
+# resources that live inside it.
+resources: {}

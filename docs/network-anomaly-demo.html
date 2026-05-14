@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Anomaly Knowledge Graph — Databricks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --db-lava: #FF3621; --db-lava-light: #FF5F46;
+      --db-navy: #1B3139; --db-ink: #0B2026; --db-teal: #1B5162;
+      --db-green: #00A972; --db-oat: #F9F7F4; --db-oat-medium: #EEEDE9;
+      --db-oat-dark: #DBD7CE; --db-white: #FFFFFF; --db-black: #000000;
+      --db-burgundy: #970F29; --db-amber: #FEAB03; --db-muted-teal: #618693; --db-indigo: #4259FE;
+      --bg-primary: var(--db-oat); --bg-dark: var(--db-navy);
+      --text-primary: var(--db-ink); --text-secondary: #4A5E68;
+      --font-display: 'DM Sans', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: auto; overflow-y: scroll; scroll-snap-type: y mandatory; }
+    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; }
+    h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.5rem, 5vw, 4.5rem); letter-spacing: -0.02em; line-height: 1.1; }
+    h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem, 3.5vw, 3rem); letter-spacing: -0.01em; line-height: 1.2; margin-bottom: 1.5rem; }
+    h3 { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.1rem, 2vw, 1.4rem); line-height: 1.3; margin-bottom: 0.5rem; }
+    p, li { font-family: var(--font-body); font-weight: 400; font-size: clamp(1rem, 1.4vw, 1.2rem); line-height: 1.55; }
+    code, .mono { font-family: var(--font-mono); font-weight: 400; font-size: 0.95em; }
+    .slide { height: 100vh; height: 100dvh; scroll-snap-align: start; padding: clamp(2rem, 5vw, 4rem); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow-y: auto; }
+    .slide-content { width: 100%; max-width: 1200px; margin: 0 auto; }
+    .slide-dark { background: var(--db-navy); color: var(--db-white); }
+    .slide-dark h1, .slide-dark h2, .slide-dark h3, .slide-dark p, .slide-dark li { color: var(--db-white); }
+    .slide-light { background: var(--db-oat); color: var(--db-ink); }
+    .accent-line { width: 60px; height: 4px; background: var(--db-lava); margin: 1.5rem 0; border-radius: 2px; }
+    .slide-dark .accent-line { background: var(--db-lava); }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--db-lava); margin-bottom: 1rem; }
+    .lead { font-size: 1.4rem; line-height: 1.4; max-width: 900px; color: var(--text-secondary); }
+    .slide-dark .lead { color: rgba(255,255,255,0.75); }
+    .db-logo { height: 32px; width: auto; }
+    .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--db-lava); z-index: 100; transition: width 0.3s ease; width: 0%; }
+    .nav-dots { position: fixed; right: 1.5rem; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 100; }
+    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--db-oat-medium); border: none; cursor: pointer; transition: all 0.3s ease; padding: 0; }
+    .nav-dot.active { background: var(--db-lava); transform: scale(1.4); }
+    .footer-note { position: absolute; bottom: 1.5rem; left: 2rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); }
+    .slide-dark .footer-note { color: rgba(255,255,255,0.4); }
+    .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-top: 1.5rem; }
+    .card-grid.two { grid-template-columns: repeat(2, 1fr); }
+    .card { background: var(--db-white); border: 1px solid var(--db-oat-medium); border-radius: 12px; padding: 1.5rem; }
+    .slide-dark .card { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+    .card h3 { color: var(--db-ink); margin-bottom: 0.5rem; }
+    .slide-dark .card h3 { color: var(--db-white); }
+    .card p { color: var(--text-secondary); font-size: 0.95rem; }
+    .slide-dark .card p { color: rgba(255,255,255,0.7); }
+    .card .icon { display: inline-flex; width: 36px; height: 36px; border-radius: 8px; align-items: center; justify-content: center; background: var(--db-lava); color: white; font-weight: 700; margin-bottom: 0.75rem; font-size: 1.1rem; }
+    .icon-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 1.5rem; margin-top: 1.5rem; max-width: 900px; }
+    .icon-item { display: flex; gap: 0.85rem; align-items: flex-start; }
+    .icon-item .ico { width: 32px; height: 32px; border-radius: 8px; background: var(--db-lava); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-family: var(--font-mono); }
+    .icon-item h4 { font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem; }
+    .icon-item p { color: var(--text-secondary); font-size: 0.95rem; }
+    .diagram { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; max-width: 900px; margin: 1.5rem auto 0; }
+    .diagram-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+    .diagram-node { padding: 0.85rem 1.25rem; border-radius: 10px; font-weight: 500; font-size: 0.9rem; text-align: center; min-width: 130px; }
+    .diagram-node.primary { background: var(--db-lava); color: white; }
+    .diagram-node.navy { background: var(--db-navy); color: white; }
+    .diagram-node.teal { background: var(--db-teal); color: white; }
+    .diagram-node.green { background: var(--db-green); color: white; }
+    .diagram-node.amber { background: var(--db-amber); color: var(--db-ink); }
+    .diagram-node.indigo { background: var(--db-indigo); color: white; }
+    .diagram-node.outline { background: transparent; border: 2px solid var(--db-oat-dark); color: var(--db-ink); }
+    .diagram-arrow { font-size: 1.2rem; color: var(--db-oat-dark); }
+    .timeline { position: relative; max-width: 800px; margin: 1rem auto 0; padding-left: 2rem; }
+    .timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--db-oat-dark); }
+    .timeline-item { position: relative; padding: 0 0 1rem 1.5rem; }
+    .timeline-item::before { content: ''; position: absolute; left: -2rem; top: 0.45rem; width: 12px; height: 12px; border-radius: 50%; background: var(--db-lava); border: 2px solid var(--db-oat); margin-left: 1.5rem; }
+    .timeline-item h4 { font-weight: 700; margin-bottom: 0.15rem; font-size: 1.05rem; }
+    .timeline-item p { color: var(--text-secondary); font-size: 0.95rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem; }
+    .code-block { background: var(--db-ink); color: #E1E8EE; border-radius: 12px; padding: 1.25rem 1.5rem; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.55; overflow-x: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .slide-dark .code-block { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); }
+    .code-block .kw { color: #FF8A65; }
+    .code-block .str { color: #A5D6A7; }
+    .code-block .com { color: #78909C; font-style: italic; }
+    .counter-group { display: flex; gap: 2.5rem; justify-content: center; flex-wrap: wrap; margin: 1.5rem 0; }
+    .counter-item { text-align: center; }
+    .counter-value { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1; color: var(--db-lava); }
+    .counter-label { font-family: var(--font-body); font-size: 0.95rem; color: var(--text-secondary); margin-top: 0.5rem; }
+    .pill { display: inline-block; padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; font-family: var(--font-mono); }
+    .pill.lava { background: rgba(255,54,33,0.12); color: var(--db-lava); }
+    .pill.green { background: rgba(0,169,114,0.12); color: var(--db-green); }
+    .pill.amber { background: rgba(254,171,3,0.16); color: #B27600; }
+    .pill.indigo { background: rgba(66,89,254,0.12); color: var(--db-indigo); }
+    .pill.muted { background: var(--db-oat-medium); color: var(--text-secondary); }
+    ul.bullets { list-style: none; padding: 0; margin-top: 1rem; }
+    ul.bullets li { padding: 0.5rem 0 0.5rem 1.5rem; position: relative; }
+    ul.bullets li::before { content: '▸'; position: absolute; left: 0; color: var(--db-lava); font-weight: 700; }
+    .slide-dark ul.bullets li::before { color: var(--db-lava); }
+    .stage-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-top: 1.5rem; }
+    .stage-card { padding: 1rem; border-radius: 10px; background: var(--db-white); border: 1px solid var(--db-oat-medium); }
+    .slide-dark .stage-card { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+    .stage-card h4 { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem; }
+    .stage-card p { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.4; }
+    .slide-dark .stage-card p { color: rgba(255,255,255,0.7); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot.red { background: #EF4444; box-shadow: 0 0 12px #EF4444; }
+    .dot.yellow { background: #FACC15; box-shadow: 0 0 8px #FACC15; }
+    .dot.purple { background: #A855F7; }
+    .dot.green { background: var(--db-green); }
+    .dot.blue { background: #3B82F6; }
+    @media (max-width: 900px) {
+      .card-grid, .icon-grid, .two-col, .stage-grid { grid-template-columns: 1fr; }
+      .nav-dots { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+  <nav class="nav-dots" aria-label="Slide navigation"></nav>
+
+  <!-- ============================================================ -->
+  <!-- Slide 1: Title -->
+  <section class="slide slide-dark" aria-label="Slide 1: Title">
+    <div class="slide-content">
+      <svg class="db-logo" viewBox="0 0 713 113" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Databricks">
+        <path d="M98.9 46.6L52.3 72.9 2.4 44.8 0 46.1v20.4L52.3 95.9 98.9 69.7v10.8L52.3 106.8 2.4 78.7 0 80v3.5L52.3 112.9l52.2-29.4V63.1l-2.4-1.3-49.8 28L5.6 63.6V52.8l46.7 26.2 52.2-29.4V29.5L101.9 28l-49.6 27.9L8 31.1l44.3-24.9 36.4 20.5 3.2-1.8v-2.5L52.3 0.1 0 29.5v3.2l52.3 29.4L98.9 35.8v10.8Z" fill="#FF3621"/>
+        <path d="M202.2 96.2V6.4h-13.8v33.6c0 .5-.3.9-.8 1.1-.5.2-1 0-1.3-.3-4.7-5.5-12-8.6-20-8.6-17.1 0-30.5 14.4-30.5 32.8 0 9 3.1 17.3 8.8 23.4 5.7 6.1 13.4 9.4 21.7 9.4 7.9 0 15.2-3.3 20-9 .3-.4.9-.5 1.3-.4.5.2.8.6.8 1.1v6.7h13.8ZM169.3 85.3c-11 0-19.6-8.9-19.6-20.3s8.6-20.3 19.6-20.3 19.6 8.9 19.6 20.3-8.6 20.3-19.6 20.3ZM276 96.1V33.7h-13.7V40c0 .5-.3.9-.8 1.1-.5.2-1 0-1.3-.4-4.6-5.5-11.8-8.6-20-8.6-17.1 0-30.5 14.4-30.5 32.8s13.4 32.8 30.5 32.8c7.9 0 15.2-3.3 20-9.1.3-.4.9-.5 1.3-.4.5.2.8.6.8 1.1v6.8H276ZM243.3 85.3c-11 0-19.6-8.9-19.6-20.3s8.6-20.3 19.6-20.3 19.6 8.9 19.6 20.3-8.6 20.3-19.6 20.3ZM314.4 97.2c4.4 0 8.3-.4 10.5-.7v-12c-1.8.2-5 .4-6.9.4-5.6 0-9.9-1-9.9-13.1V46.1c0-.7.5-1.2 1.2-1.2h13.5V33.6h-13.5c-.7 0-1.2-.5-1.2-1.2V14.4h-13.8v18.1c0 .7-.5 1.2-1.2 1.2H283.5v11.3h9.6c.7 0 1.2.5 1.2 1.2v29.1c0 21.9 14.6 21.9 20.1 21.9ZM393.3 96.2V33.7h-13.7V40c0 .5-.3.9-.8 1.1-.5.2-1 0-1.3-.4-4.6-5.5-11.8-8.6-20-8.6-17.2 0-30.5 14.4-30.5 32.9s13.4 32.8 30.5 32.8c7.9 0 15.2-3.3 20-9.1.3-.4.9-.5 1.3-.4.5.2.8.6.8 1.1v6.8h13.7ZM360.6 85.3c-11 0-19.6-8.9-19.6-20.3s8.6-20.3 19.6-20.3 19.6 8.9 19.6 20.3-8.6 20.3-19.6 20.3ZM418.4 88.8c.1 0 .3-.1.4-.1.3 0 .7.2.9.4 4.7 5.5 12 8.6 20 8.6 17.1 0 30.5-14.4 30.5-32.8 0-9-3.1-17.3-8.8-23.4-5.7-6.1-13.4-9.4-21.7-9.4-7.9 0-15.2 3.3-20 9-.3.4-.8.5-1.3.4-.5-.2-.8-.6-.8-1.1V6.4h-13.8v89.8h13.8v-6.3c0-.5.3-.9.8-1.1ZM417 65c0-11.4 8.6-20.3 19.6-20.3s19.6 8.9 19.6 20.3-8.6 20.3-19.6 20.3-19.6-9-19.6-20.3ZM510.1 46.5c1.3 0 2.5.1 3.3.3V32.6c-.5-.1-1.4-.2-2.3-.2-7.2 0-13.8 3.7-17.3 9.6-.3.5-.8.7-1.3.5-.5-.1-.9-.6-.9-1.1v-7.7h-13.7v62.6h13.8V68.7c0-13.7 7-22.2 18.4-22.2ZM536.1 33.7h-14v62.6h14V33.7ZM528.9 6.5c-4.7 0-8.5 3.8-8.5 8.5s3.8 8.5 8.5 8.5 8.5-3.8 8.5-8.5-3.8-8.5-8.5-8.5ZM577.1 32.1c-19.2 0-33.1 13.8-33.1 32.9 0 9.3 3.3 17.6 9.2 23.6 6 6 14.4 9.3 23.8 9.3 7.8 0 13.8-1.5 25.2-9.9l-7.9-8.3c-5.6 3.7-10.8 5.5-15.9 5.5-11.6 0-20.3-8.7-20.3-20.2s8.7-20.2 20.3-20.2c5.5 0 10.6 1.8 15.7 5.5l8.8-8.3c-10.3-8.8-19.6-9.9-25.8-9.9ZM626.5 68.7c.2-.2.5-.3.8-.3h.1c.3 0 .6.2.9.4l22.1 27.4h17l-28.6-34.6c-.4-.5-.4-1.2.1-1.6l26.3-26.3h-16.9l-22.7 22.8c-.3.3-.8.4-1.3.3-.4-.2-.7-.6-.7-1.1V6.5h-13.9v89.8h13.8V71.9c0-.3.1-.7.4-.9l2.6-2.3ZM689.9 97.8c11.3 0 22.8-6.9 22.8-20 0-8.6-5.4-14.5-16.4-18.1l-7.5-2.5c-5.1-1.7-7.5-4.1-7.5-7.4 0-3.8 3.4-6.4 8.2-6.4 4.6 0 8.7 3 11.3 8.2l11.1-6c-4.1-8.4-12.6-13.6-22.4-13.6-12.4 0-21.4 8-21.4 18.9 0 8.7 5.2 14.5 15.9 17.9l7.7 2.5c5.4 1.7 7.7 3.9 7.7 7.4 0 5.3-4.9 7.2-9.1 7.2-5.6 0-10.6-3.6-13-9.5l-11.3 6c3.7 9.5 12.8 15.4 23.9 15.4Z" fill="#FFFFFF"/>
+      </svg>
+      <div style="margin-top: 4rem;">
+        <div class="eyebrow">Anomaly Detection Demo · Databricks</div>
+        <h1>Anomaly Detection at the Speed of the Graph</h1>
+        <div class="accent-line"></div>
+        <p class="lead">A network-traffic knowledge graph on Databricks — Unity Catalog, Spark Declarative Pipelines, GraphFrames, and a React app — deployed end-to-end as a Declarative Automation Bundle.</p>
+        <p style="margin-top:2rem; font-family: var(--font-mono); font-size: 0.85rem; color: rgba(255,255,255,0.5);">Use arrow keys, scroll, or swipe to navigate</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 2: The Problem -->
+  <section class="slide slide-light" aria-label="Slide 2: The Problem">
+    <div class="slide-content">
+      <div class="eyebrow">The problem</div>
+      <h2>Network anomalies hide between the rows</h2>
+      <div class="accent-line"></div>
+      <div class="two-col" style="margin-top:1.5rem; align-items:start;">
+        <div>
+          <p class="lead">Traditional SIEM and SQL alerts treat each event in isolation. The signal that matters lives <strong>in the relationships</strong>:</p>
+          <ul class="bullets" style="margin-top:1.25rem;">
+            <li>A port-scanner is only obvious when you see <em>all</em> its destinations together</li>
+            <li>Lateral movement is a <em>chain</em>, not a row</li>
+            <li>Exfiltration is a <em>ratio</em> across many flows</li>
+            <li>A rogue device is defined by what it <em>doesn't</em> talk to</li>
+          </ul>
+        </div>
+        <div class="card-grid two" style="grid-template-columns:1fr; gap:1rem;">
+          <div class="card"><h3>Row-by-row alerting</h3><p>Misses anything that requires multi-hop reasoning across hosts, ports, and time windows.</p></div>
+          <div class="card"><h3>Static rules</h3><p>Break the moment attacker behavior shifts. Maintaining hundreds of brittle SQL alerts is its own job.</p></div>
+          <div class="card"><h3>Graph thinking</h3><p>Entities are nodes, traffic and resolutions are edges. Anomalies become <strong>patterns</strong> the graph naturally surfaces.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·02</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 3: Why Knowledge Graphs -->
+  <section class="slide slide-light" aria-label="Slide 3: Why Knowledge Graphs">
+    <div class="slide-content">
+      <div class="eyebrow">Why knowledge graphs</div>
+      <h2>The right shape for network security</h2>
+      <div class="accent-line"></div>
+      <div class="card-grid">
+        <div class="card"><span class="icon">1</span><h3>Entity semantics</h3><p>Hosts, services, subnets, and external IPs are first-class entities — not rows in a denormalized log.</p></div>
+        <div class="card"><span class="icon">2</span><h3>Relationship-first</h3><p>Edges carry weight, direction, timestamps, and rich attributes. <em>Who talks to whom, how much, when, why</em>.</p></div>
+        <div class="card"><span class="icon">3</span><h3>Multi-hop reasoning</h3><p>"Did this rogue device's neighbor's neighbor ever ping our payments DB?" is a single graph query.</p></div>
+        <div class="card"><span class="icon">4</span><h3>Schema-flexible</h3><p>Each entity type carries its own attribute payload via VARIANT — no painful star-schema gymnastics.</p></div>
+        <div class="card"><span class="icon">5</span><h3>Explainable</h3><p>Every flagged anomaly comes with the subgraph of evidence — you can show the analyst <em>why</em>.</p></div>
+        <div class="card"><span class="icon">6</span><h3>Composable</h3><p>The same nodes/edges power dashboards, notebook analytics, the app, and downstream ML.</p></div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·03</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 4: Knowledge graphs on Databricks -->
+  <section class="slide slide-light" aria-label="Slide 4: Knowledge graphs on Databricks">
+    <div class="slide-content">
+      <div class="eyebrow">The platform fit</div>
+      <h2>Knowledge graphs on Databricks</h2>
+      <div class="accent-line"></div>
+      <p class="lead">The Lakehouse already speaks the language of nodes and edges. Every primitive you need lives in one platform.</p>
+      <div class="icon-grid" style="margin-top:1.5rem;">
+        <div class="icon-item"><div class="ico">UC</div><div><h4>Unity Catalog</h4><p>Two Delta tables — <code>gold_graph_nodes</code> + <code>gold_graph_edges</code> — <em>are</em> the graph. Schema, lineage, grants, time travel all for free.</p></div></div>
+        <div class="icon-item"><div class="ico">SDP</div><div><h4>Spark Declarative Pipelines</h4><p>Bronze → silver → gold medallion. Materialized views refresh as data flows in. Anomaly detectors are MVs.</p></div></div>
+        <div class="icon-item"><div class="ico">V</div><div><h4>VARIANT attributes</h4><p>Per-node and per-edge JSON payloads queried with <code>attrs:field::type</code>. Schema-less rich metadata.</p></div></div>
+        <div class="icon-item"><div class="ico">GF</div><div><h4>GraphFrames</h4><p>Current state of the art for distributed graph processing on Spark — PageRank, motifs, BFS, connected components.</p></div></div>
+        <div class="icon-item"><div class="ico">App</div><div><h4>Databricks Apps</h4><p>React + FastAPI app, deployed from the same bundle, queries the graph via SQL warehouse and renders it live.</p></div></div>
+        <div class="icon-item"><div class="ico">DAB</div><div><h4>Declarative Bundles</h4><p>Catalog, schema, pipeline, jobs, app — all declared as code and deployed via the direct engine (<code>bundle.engine=direct</code>).</p></div></div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·04</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 5: Reference architecture -->
+  <section class="slide slide-light" aria-label="Slide 5: Reference architecture">
+    <div class="slide-content">
+      <div class="eyebrow">Reference architecture</div>
+      <h2>From raw flow logs to a live graph</h2>
+      <div class="accent-line"></div>
+      <div class="diagram" style="margin-top:1rem;">
+        <div class="diagram-row">
+          <div class="diagram-node outline">data/*.sql</div>
+          <span class="diagram-arrow">→</span>
+          <div class="diagram-node amber">bronze_*</div>
+          <span class="diagram-arrow">→</span>
+          <div class="diagram-node teal">silver_*</div>
+          <span class="diagram-arrow">→</span>
+          <div class="diagram-node green">gold_graph_*</div>
+          <span class="diagram-arrow">→</span>
+          <div class="diagram-node primary">React App</div>
+        </div>
+        <div class="diagram-row" style="margin-top:1rem;">
+          <div class="diagram-node navy">Notebook 00 — Generate</div>
+          <div class="diagram-node navy">Notebook 01 — Load</div>
+          <div class="diagram-node navy">SDP Pipeline</div>
+          <div class="diagram-node navy">Notebook 02 — GraphFrames</div>
+          <div class="diagram-node navy">Notebook 03 — Anomaly queries</div>
+        </div>
+      </div>
+      <p style="text-align:center; margin-top:1.5rem; font-size:0.95rem; color: var(--text-secondary);">
+        Everything between the bars deploys from one DAB. <code>databricks bundle deploy && databricks bundle run load_bronze</code>.
+      </p>
+    </div>
+    <div class="footer-note">Databricks ·05</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 6: Data model -->
+  <section class="slide slide-dark" aria-label="Slide 6: Data model">
+    <div class="slide-content">
+      <div class="eyebrow">The graph in two tables</div>
+      <h2>Nodes and edges, both with VARIANT attrs</h2>
+      <div class="accent-line"></div>
+      <p style="color: rgba(255,255,255,0.7); margin-top: 0.5rem; font-size: 1rem;">
+        Every entity in the network — hosts, subnets, services, external IPs — is a row in <code>gold_graph_nodes</code>. Every relationship — flows, DNS resolutions, service-runs-on, host-in-subnet — is a row in <code>gold_graph_edges</code>. The <code>attrs</code> column on each is a Databricks <strong>VARIANT</strong>, carrying a different shape per node/edge type. Bronze events conform to the <strong>OCSF</strong> standard (Network Activity class_uid=4001, DNS Activity 4003).
+      </p>
+      <div class="two-col" style="margin-top:1rem; gap: 1.5rem;">
+        <div>
+          <h3 style="font-weight:700; margin-bottom:0.5rem; font-size: 0.95rem;">gold_graph_nodes — 5,397 rows</h3>
+          <pre class="code-block" style="font-size: 0.72rem;"><span class="kw">CREATE OR REFRESH MATERIALIZED VIEW</span> gold_graph_nodes
+<span class="kw">CLUSTER BY</span> (node_id, node_type) <span class="kw">AS</span>
+  node_id        STRING        <span class="com">-- 'host:H-0207'</span>
+  node_type      STRING        <span class="com">-- host|subnet|service|external_ip</span>
+  label          STRING        <span class="com">-- hostname / cidr / service_name</span>
+  <span class="kw">attrs</span>          <span class="kw">VARIANT</span>       <span class="com">-- per-type JSON payload</span>
+  criticality    INT           <span class="com">-- 1..5, host nodes only</span>
+  subnet_id      STRING
+  is_external    BOOLEAN
+  host_type      STRING
+  anomaly_score  DOUBLE        <span class="com">-- max across detectors</span>
+  anomaly_labels ARRAY&lt;STRING&gt; <span class="com">-- ['port_scan','rogue_device',…]</span></pre>
+          <div style="font-size: 0.72rem; color: rgba(255,255,255,0.7); margin-top: 0.6rem; line-height: 1.55;">
+            <strong>VARIANT attrs payload per node_type:</strong><br>
+            <span style="color: var(--db-amber);">host</span> · ip, host_type, os, owner, criticality, zone, cidr, last_active_ts, flow_total<br>
+            <span style="color: var(--db-amber);">subnet</span> · cidr, zone, description<br>
+            <span style="color: var(--db-amber);">service</span> · host_id, port, protocol, service_name<br>
+            <span style="color: var(--db-amber);">external_ip</span> · ip, total_bytes, flow_count, distinct_internal_callers, last_seen_ts
+          </div>
+        </div>
+        <div>
+          <h3 style="font-weight:700; margin-bottom:0.5rem; font-size: 0.95rem;">gold_graph_edges — 32,734 rows</h3>
+          <pre class="code-block" style="font-size: 0.72rem;"><span class="kw">CREATE OR REFRESH MATERIALIZED VIEW</span> gold_graph_edges
+<span class="kw">CLUSTER BY</span> (src_id, dst_id, edge_type) <span class="kw">AS</span>
+  src_id         STRING
+  dst_id         STRING
+  edge_type      STRING        <span class="com">-- flow|resolves|hosts|in_subnet</span>
+  packet_count   BIGINT
+  byte_count     BIGINT
+  flow_count     BIGINT
+  is_cross_zone  BOOLEAN
+  is_anomalous   BOOLEAN
+  anomaly_label  STRING
+  anomaly_score  DOUBLE
+  last_seen_ts   TIMESTAMP
+  <span class="kw">attrs</span>          <span class="kw">VARIANT</span>       <span class="com">-- edge-type-specific</span></pre>
+          <div style="font-size: 0.72rem; color: rgba(255,255,255,0.7); margin-top: 0.6rem; line-height: 1.55;">
+            <strong>VARIANT attrs payload per edge_type:</strong><br>
+            <span style="color: var(--db-amber);">flow</span> · src_zone, dst_zone, is_cross_zone, distinct_dst_ports[], distinct_protocols[], byte_count, flow_count, avg_duration_ms<br>
+            <span style="color: var(--db-amber);">resolves</span> · query_count, sample_queries[], query_types[], is_suspicious_tld<br>
+            <span style="color: var(--db-amber);">hosts</span> · port, protocol, service_name<br>
+            <span style="color: var(--db-amber);">in_subnet</span> · zone, cidr
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·06</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 7: SDP medallion -->
+  <section class="slide slide-light" aria-label="Slide 7: SDP medallion">
+    <div class="slide-content">
+      <div class="eyebrow">Spark Declarative Pipelines</div>
+      <h2>Medallion all the way to the graph</h2>
+      <div class="accent-line"></div>
+      <div class="timeline">
+        <div class="timeline-item"><h4>Bronze — <code>bronze_{hosts, subnets, services, network_flows, dns_queries}</code></h4><p>Loaded by notebook 01 from <code>data/*.sql</code> — committed SQL files are the source of truth.</p></div>
+        <div class="timeline-item"><h4>Silver — typed, joined, enriched MVs</h4><p>silver_flows joins src/dst hosts and subnets; silver_dns flags suspicious TLDs; silver_hosts adds zone info.</p></div>
+        <div class="timeline-item"><h4>Gold — the graph</h4><p><code>gold_graph_nodes</code> and <code>gold_graph_edges</code> with VARIANT attrs — these are the canonical entities downstream consumers query.</p></div>
+        <div class="timeline-item"><h4>Gold — anomaly detector MVs</h4><p>One MV per anomaly type: <span class="pill lava">port_scan</span> <span class="pill lava">lateral_movement</span> <span class="pill lava">data_exfiltration</span> <span class="pill lava">rogue_device</span> <span class="pill lava">ddos</span></p></div>
+        <div class="timeline-item"><h4>Refresh = one bundle command</h4><p><code>databricks bundle run load_bronze</code> loads bronze and triggers the pipeline. Serverless v5 spins compute on demand.</p></div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·07</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 8: 5 anomaly patterns -->
+  <section class="slide slide-light" aria-label="Slide 8: Five anomaly patterns">
+    <div class="slide-content">
+      <div class="eyebrow">What the graph surfaces</div>
+      <h2>Five anomaly patterns, all from the same nodes + edges</h2>
+      <div class="accent-line"></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-top: 1rem;">
+        <div class="card" style="padding: 0.9rem 1.1rem;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.35rem;"><span class="dot red"></span> Port scan · <code style="font-size: 0.7rem; color: var(--text-secondary);">gold_anomaly_scan</code></h3>
+          <p style="font-size: 0.85rem;"><strong>Rule:</strong> ≥30 distinct dst hosts AND ≥30 distinct dst ports in a 10-min window.</p>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">Visual: starburst from one red node. Seeded: <code>H-1027</code> → 60 hosts × 6 ports.</p>
+        </div>
+        <div class="card" style="padding: 0.9rem 1.1rem;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.35rem;"><span class="dot red"></span> Lateral movement · <code style="font-size: 0.7rem; color: var(--text-secondary);">gold_anomaly_lateral</code></h3>
+          <p style="font-size: 0.85rem;"><strong>Rule:</strong> 3-hop chain via self-joins (a→b→c→d) where each hop's dst is next's src, crossing ≥3 zones in 15 min.</p>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">Visual: snake across subnets. Seeded: 3 chains.</p>
+        </div>
+        <div class="card" style="padding: 0.9rem 1.1rem;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.35rem;"><span class="dot red"></span> Data exfiltration · <code style="font-size: 0.7rem; color: var(--text-secondary);">gold_anomaly_exfil</code></h3>
+          <p style="font-size: 0.85rem;"><strong>Rule:</strong> &gt;5 MB outbound to a single external IP in a 5-min window, per (src, dst_ip).</p>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">Visual: thick red edge leaving the cluster. Seeded: <code>H-1793</code> → <code>185.220.101.42</code>, ~25 MB.</p>
+        </div>
+        <div class="card" style="padding: 0.9rem 1.1rem;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.35rem;"><span class="dot purple"></span> Rogue device · <code style="font-size: 0.7rem; color: var(--text-secondary);">gold_anomaly_rogue</code></h3>
+          <p style="font-size: 0.85rem;"><strong>Rule:</strong> internal host with <code>flow_count = 0</code> AND ≥1 DNS query to a flagged TLD (<code>.xyz/.top/.tk/.click/.ru/.pw/.cc/.bid</code>).</p>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">Visual: purple isolate at periphery. Seeded: 5 rogues.</p>
+        </div>
+        <div class="card" style="padding: 0.9rem 1.1rem;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.35rem;"><span class="dot red"></span> DDoS target · <code style="font-size: 0.7rem; color: var(--text-secondary);">gold_anomaly_ddos</code></h3>
+          <p style="font-size: 0.85rem;"><strong>Rule:</strong> ≥50 distinct sources hitting one dst in a 5-min window.</p>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">Visual: fan-in. Seeded: <code>H-1447</code> from 150 sources (tops the GraphFrames degree-centrality ranking at 195).</p>
+        </div>
+      </div>
+      <p style="text-align:center; margin-top:1.2rem; font-size:0.85rem; color: var(--text-secondary);">
+        Each detector is a single materialized view in <code>pipelines/gold/</code> — &lt;40 lines of SQL each. Scores between 0 and 1; multiple flags merge into <code>anomaly_labels</code> on the node.
+      </p>
+    </div>
+    <div class="footer-note">Databricks ·08</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 9: Visual signatures (app) -->
+  <section class="slide slide-dark" aria-label="Slide 9: Visual signatures in the app">
+    <div class="slide-content">
+      <div class="eyebrow">In the app</div>
+      <h2>Anomalies have shapes — and the app draws them</h2>
+      <div class="accent-line"></div>
+      <div class="card-grid">
+        <div class="card"><h3><span class="dot blue"></span> Blue · normal host</h3><p>Workstation with expected peer connections. Clusters tightly near its gateway.</p></div>
+        <div class="card"><h3><span class="dot green"></span> Green · server / gateway</h3><p>High legitimate fan-in. Sits at the center of normal subnet clusters.</p></div>
+        <div class="card"><h3><span class="dot yellow"></span> Yellow · elevated (pulsing)</h3><p>anomaly_score &gt; 0.5. Pulses to draw attention without alarm.</p></div>
+        <div class="card"><h3><span class="dot red"></span> Red · confirmed (glowing)</h3><p>anomaly_score &gt; 0.85. Radial glow, animated red particles on its edges.</p></div>
+        <div class="card"><h3><span class="dot purple"></span> Purple · rogue</h3><p>Floats at the periphery with no flow edges — only DNS resolves.</p></div>
+        <div class="card"><h3>Edge particles</h3><p>Anomalous edges get 6 particles at 4× normal speed. Normal flow = 1 slow particle.</p></div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·09</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 10: SQL with VARIANT -->
+  <section class="slide slide-dark" aria-label="Slide 10: SQL with VARIANT">
+    <div class="slide-content">
+      <div class="eyebrow">Querying the graph</div>
+      <h2>Same SQL, schema-less attributes</h2>
+      <div class="accent-line"></div>
+      <p style="color:rgba(255,255,255,0.7); margin-bottom:0.75rem; font-size:1.05rem;">
+        Every node and edge carries a <code>VARIANT</code> column. Query attributes with the <code>attrs:field::type</code> operator — no joins back to bronze.
+      </p>
+      <pre class="code-block"><span class="com">-- "Where is cross-zone traffic flowing — and how much?"</span>
+<span class="kw">SELECT</span>
+  attrs:src_zone::<span class="kw">string</span> <span class="kw">AS</span> src_zone,
+  attrs:dst_zone::<span class="kw">string</span> <span class="kw">AS</span> dst_zone,
+  SUM(CAST(attrs:byte_count   <span class="kw">AS</span> BIGINT)) <span class="kw">AS</span> total_bytes,
+  SUM(CAST(attrs:flow_count   <span class="kw">AS</span> BIGINT)) <span class="kw">AS</span> total_flows
+<span class="kw">FROM</span> gold_graph_edges
+<span class="kw">WHERE</span> edge_type = <span class="str">'flow'</span>
+  <span class="kw">AND</span> attrs:is_cross_zone::<span class="kw">boolean</span> = <span class="kw">TRUE</span>
+<span class="kw">GROUP BY</span> <span class="kw">ALL</span>
+<span class="kw">ORDER BY</span> total_bytes <span class="kw">DESC</span>;</pre>
+      <p style="margin-top:1.25rem; font-size:0.95rem; color: rgba(255,255,255,0.6);">
+        Notebook <code>03_anomaly_queries</code> ships nine more — port-scan via attrs, rogue-device join across nodes + edges, top external destinations by byte_count, service-targeted-port roll-ups, and more.
+      </p>
+    </div>
+    <div class="footer-note">Databricks ·10</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 11: GraphFrames -->
+  <section class="slide slide-light" aria-label="Slide 11: GraphFrames analytics">
+    <div class="slide-content">
+      <div class="eyebrow">When SQL isn't enough</div>
+      <h2>GraphFrames for graph-shaped questions</h2>
+      <div class="accent-line"></div>
+      <p class="lead">GraphFrames is the current state of the art for distributed graph processing on Spark — GraphX was deprecated in Spark 4.0.</p>
+      <div class="two-col" style="margin-top:1.5rem;">
+        <div>
+          <h3 style="font-weight:700;">Algorithms in <code>02_graph_analytics</code></h3>
+          <ul class="bullets" style="margin-top:0.5rem;">
+            <li><strong>Degree centrality</strong> — surfaces gateways AND port-scanners simultaneously</li>
+            <li><strong>Connected components</strong> — isolates the rogue-device subgraph</li>
+            <li><strong>Motif finding</strong> — declarative path patterns: <code>(a)-[]->(b); (b)-[]->(c); (c)-[]->(d)</code></li>
+            <li><strong>BFS / reach analysis</strong> — what could a rogue touch if it pivoted?</li>
+          </ul>
+        </div>
+        <div>
+          <pre class="code-block" style="background:var(--db-navy); color:#E1E8EE;"><span class="com"># Build the graph from the gold tables</span>
+<span class="kw">from</span> graphframes <span class="kw">import</span> GraphFrame
+
+vertices = spark.<span class="kw">table</span>(<span class="str">"gold_graph_nodes"</span>) \
+  .withColumnRenamed(<span class="str">"node_id"</span>, <span class="str">"id"</span>)
+edges    = spark.<span class="kw">table</span>(<span class="str">"gold_graph_edges"</span>) \
+  .withColumnRenamed(<span class="str">"src_id"</span>, <span class="str">"src"</span>) \
+  .withColumnRenamed(<span class="str">"dst_id"</span>, <span class="str">"dst"</span>)
+
+g = GraphFrame(vertices, edges)
+chains = g.find(<span class="str">"(a)-[e1]->(b); (b)-[e2]->(c); (c)-[e3]->(d)"</span>)</pre>
+        </div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·11</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 12: DAB deployment -->
+  <section class="slide slide-dark" aria-label="Slide 12: Deployment via DAB">
+    <div class="slide-content">
+      <div class="eyebrow">Deployment</div>
+      <h2>One bundle, direct engine, every component</h2>
+      <div class="accent-line"></div>
+      <p style="color:rgba(255,255,255,0.75); font-size:1.1rem; max-width:900px;">
+        The Declarative Automation Bundle declares the schema, volume, grants, pipeline, four jobs, and the app. The <strong>direct engine</strong> (CLI 0.279+) ships them all without Terraform — faster, fewer dependencies, fully supported on serverless.
+      </p>
+      <pre class="code-block" style="margin-top:1.5rem;"><span class="com"># Validate, deploy, then run end-to-end</span>
+DATABRICKS_BUNDLE_ENGINE=direct \
+  databricks bundle validate -p fevm
+
+DATABRICKS_BUNDLE_ENGINE=direct \
+  databricks bundle deploy -p fevm
+
+databricks bundle run generate_bronze_sql -p fevm   <span class="com"># notebook 00</span>
+databricks bundle run load_bronze         -p fevm   <span class="com"># notebook 01 → SDP pipeline</span>
+databricks bundle run anomaly_app          -p fevm   <span class="com"># start the React app</span></pre>
+      <p style="margin-top:1.25rem; font-size:0.95rem; color:rgba(255,255,255,0.6);">
+        Repository layout: <code>resources/</code> (5 yml files) · <code>pipelines/</code> (silver + gold SQL) · <code>notebooks/</code> (4 .py notebooks) · <code>app/</code> (React + FastAPI) · <code>data/</code> (committed bronze SQL).
+      </p>
+    </div>
+    <div class="footer-note">Databricks ·12</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 13: Live results -->
+  <section class="slide slide-light" aria-label="Slide 13: End-to-end results">
+    <div class="slide-content">
+      <div class="eyebrow">End-to-end, verified</div>
+      <h2>What ran. What was found.</h2>
+      <div class="accent-line"></div>
+      <div class="counter-group" style="margin-top:2rem;">
+        <div class="counter-item"><div class="counter-value">5,397</div><div class="counter-label">graph nodes</div></div>
+        <div class="counter-item"><div class="counter-value">32,734</div><div class="counter-label">graph edges</div></div>
+        <div class="counter-item"><div class="counter-value">11</div><div class="counter-label">anomalies detected</div></div>
+        <div class="counter-item"><div class="counter-value">~10s</div><div class="counter-label">end-to-end deploy</div></div>
+      </div>
+      <div class="card-grid" style="margin-top:2rem;">
+        <div class="card"><h3>1 port scan</h3><p>Host H-1027 hit 60 destinations on 6 ports each in a 3-minute window. Caught by <code>gold_anomaly_scan</code>.</p></div>
+        <div class="card"><h3>3 lateral chains</h3><p>3-hop sequences crossing corporate → iot → dmz → corporate within 15 minutes.</p></div>
+        <div class="card"><h3>1 exfiltration</h3><p>H-1793 sent ~25 MB to <code>185.220.101.42</code> in 20 bursts over 4 minutes.</p></div>
+        <div class="card"><h3>5 rogue devices</h3><p>Zero flow peers, all making lookups to <code>.xyz</code> / <code>.top</code> / <code>.tk</code> TLDs.</p></div>
+        <div class="card"><h3>1 DDoS target</h3><p>H-1447 received traffic from 150 distinct sources in a 5-minute window. Top degree in the graph.</p></div>
+        <div class="card"><h3>0 false negatives</h3><p>Every seeded anomaly was found by its detector MV — no tuning required.</p></div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·13</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 14: Introducing Lakewatch -->
+  <section class="slide slide-dark" aria-label="Slide 14: Introducing Databricks Lakewatch">
+    <div class="slide-content">
+      <div class="eyebrow">The Databricks SIEM</div>
+      <h2>Introducing Databricks Lakewatch</h2>
+      <div class="accent-line"></div>
+      <p style="color: rgba(255,255,255,0.78); font-size: 1.05rem; max-width: 980px;">
+        Announced March 2026. <strong>Lakewatch is Databricks' new open, agentic SIEM</strong> — it brings security
+        information and event management directly into the lakehouse, normalizes telemetry on <strong>OCSF</strong>,
+        and pairs detection-as-code with Mosaic AI agents that triage and investigate. Currently in Private Preview.
+      </p>
+      <div class="card-grid" style="margin-top: 1.25rem;">
+        <div class="card">
+          <h3 style="font-size: 0.95rem;">① Ingest</h3>
+          <p>Managed connectors for CrowdStrike, Okta, AWS CloudTrail, and more — plus cloud storage or existing workspace tables.</p>
+        </div>
+        <div class="card">
+          <h3 style="font-size: 0.95rem;">② Normalize on OCSF</h3>
+          <p>Open Cybersecurity Schema Framework brings every source into a consistent shape (class_uid, activity_id, src/dst_endpoint, traffic, …).</p>
+        </div>
+        <div class="card">
+          <h3 style="font-size: 0.95rem;">③ Detect threats</h3>
+          <p>SQL-based detection rules on schedules with prebuilt templates. Versioned. Tested. Deployed as code.</p>
+        </div>
+        <div class="card">
+          <h3 style="font-size: 0.95rem;">④ Investigate cases</h3>
+          <p>Security cases auto-correlate related alerts and track entity risk scores across the graph of activity.</p>
+        </div>
+        <div class="card">
+          <h3 style="font-size: 0.95rem;">⑤ Ad-hoc SQL</h3>
+          <p>Time-range filtering, row-level inspection — analyst-grade SQL in the Lakewatch UI directly over OCSF gold.</p>
+        </div>
+        <div class="card">
+          <h3 style="font-size: 0.95rem;">⑥ Investigate with AI</h3>
+          <p>Genie + Agent Bricks plan multi-step investigations, parse hundreds of telemetry formats, and surface the why.</p>
+        </div>
+      </div>
+      <p style="margin-top: 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.55);">
+        Architecture: bronze (raw) → silver (cleaned / presets) → <strong>gold (OCSF-normalized)</strong> → detection rules · security cases · observables · ad-hoc · AI investigation.
+      </p>
+    </div>
+    <div class="footer-note">Databricks ·14</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 15: How this demo maps to Lakewatch -->
+  <section class="slide slide-light" aria-label="Slide 15: This demo maps onto Lakewatch">
+    <div class="slide-content">
+      <div class="eyebrow">The migration story</div>
+      <h2>What we built ≈ Lakewatch, hand-rolled</h2>
+      <div class="accent-line"></div>
+      <p class="lead">The pieces of this demo map 1:1 onto Lakewatch primitives, so when Lakewatch GAs the migration is mostly re-pointing detection rules at the same OCSF-aligned (Open Cybersecurity Schema Framework) gold tables.</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-top: 1.5rem;">
+        <div class="card" style="padding: 0.85rem 1.1rem;">
+          <h3 style="font-size: 0.95rem;">Bronze · raw events</h3>
+          <p style="font-size: 0.85rem;">Lakewatch: managed connectors land raw security data.<br>This demo: <code>bronze_network_flows</code>, <code>bronze_dns_queries</code>, <code>bronze_hosts</code>, <code>bronze_subnets</code>, <code>bronze_services</code>.</p>
+        </div>
+        <div class="card" style="padding: 0.85rem 1.1rem;">
+          <h3 style="font-size: 0.95rem;">Silver · presets / enrich</h3>
+          <p style="font-size: 0.85rem;">Lakewatch: built-in presets normalize per source.<br>This demo: <code>silver_flows</code> (cross-zone flag), <code>silver_dns</code> (suspicious-TLD flag), <code>silver_hosts</code>, <code>silver_services</code>.</p>
+        </div>
+        <div class="card" style="padding: 0.85rem 1.1rem;">
+          <h3 style="font-size: 0.95rem;">Gold · OCSF-normalized</h3>
+          <p style="font-size: 0.85rem;">Lakewatch: OCSF gold drives every consumer.<br>This demo: bronze + silver carry OCSF class_uid (4001 / 4003), src_endpoint.*, traffic.*, query.* on every event row — same standard.</p>
+        </div>
+        <div class="card" style="padding: 0.85rem 1.1rem;">
+          <h3 style="font-size: 0.95rem;">Detection rules · SQL · as-code</h3>
+          <p style="font-size: 0.85rem;">Lakewatch: scheduled SQL detections with prebuilt templates.<br>This demo: the five <code>gold_anomaly_*</code> MVs — each &lt;40 lines of SQL, version-controlled in the bundle.</p>
+        </div>
+        <div class="card" style="padding: 0.85rem 1.1rem;">
+          <h3 style="font-size: 0.95rem;">Observables · entity risk</h3>
+          <p style="font-size: 0.85rem;">Lakewatch: extracted entities with risk scoring.<br>This demo: <code>gold_graph_nodes</code> with <code>anomaly_score</code> + <code>anomaly_labels</code> rolled up across detectors.</p>
+        </div>
+        <div class="card" style="padding: 0.85rem 1.1rem;">
+          <h3 style="font-size: 0.95rem;">Security cases · correlation</h3>
+          <p style="font-size: 0.85rem;">Lakewatch: auto-correlates related alerts into cases.<br>This demo: the next step — a <code>gold_security_cases</code> MV that joins <code>gold_anomaly_*</code> by overlapping <code>node_id</code> or time window.</p>
+        </div>
+        <div class="card" style="padding: 0.85rem 1.1rem;">
+          <h3 style="font-size: 0.95rem;">AI investigation · Genie</h3>
+          <p style="font-size: 0.85rem;">Lakewatch: Genie + Agent Bricks for NL investigation.<br>This demo: point Genie at <code>gold_graph_nodes</code> + <code>gold_graph_edges</code> — VARIANT attrs and column COMMENTs already give it the semantics it needs.</p>
+        </div>
+        <div class="card" style="padding: 0.85rem 1.1rem;">
+          <h3 style="font-size: 0.95rem;">Analyst UI · query + drill</h3>
+          <p style="font-size: 0.85rem;">Lakewatch: built-in UI with time-range + row-level inspection.<br>This demo: the React + force-graph app — anomaly tiles, search/highlight, node + edge detail drawer.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·15</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 16: Extensions -->
+  <section class="slide slide-light" aria-label="Slide 16: Extensions">
+    <div class="slide-content">
+      <div class="eyebrow">What's next</div>
+      <h2>Where this goes from here</h2>
+      <div class="accent-line"></div>
+      <div class="card-grid">
+        <div class="card"><span class="icon">+</span><h3>Onto Lakewatch when it GAs</h3><p>Bronze/silver/gold layers stay; detector MVs become Lakewatch detection rules; gold_graph_nodes becomes the observables surface.</p></div>
+        <div class="card"><span class="icon">+</span><h3>Streaming bronze</h3><p>Swap the SQL-file bronze for Auto Loader on Kafka or syslog. Pipeline shape stays identical.</p></div>
+        <div class="card"><span class="icon">+</span><h3>Graph embeddings</h3><p>Node2Vec / GraphSAGE on the gold tables → host-level vectors → unsupervised clustering of new anomaly archetypes.</p></div>
+        <div class="card"><span class="icon">+</span><h3>Online serving via Lakebase</h3><p>Mirror the gold graph to a Lakebase synced table for sub-100ms lookups in the app.</p></div>
+        <div class="card"><span class="icon">+</span><h3>Agentic remediation</h3><p>Pair the detector MVs with a Mosaic AI agent that opens tickets, isolates hosts, or pulls full PCAPs on demand.</p></div>
+        <div class="card"><span class="icon">+</span><h3>Cross-team graphs</h3><p>Same shape works for identity, asset, supplier, or customer-journey graphs — plenty of adjacent domains to extend into.</p></div>
+      </div>
+    </div>
+    <div class="footer-note">Databricks ·16</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- Slide 17: Closing -->
+  <section class="slide slide-dark" aria-label="Slide 17: Closing">
+    <div class="slide-content" style="text-align:center;">
+      <svg class="db-logo" viewBox="0 0 713 113" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Databricks" style="height:40px; margin: 0 auto 3rem;">
+        <path d="M98.9 46.6L52.3 72.9 2.4 44.8 0 46.1v20.4L52.3 95.9 98.9 69.7v10.8L52.3 106.8 2.4 78.7 0 80v3.5L52.3 112.9l52.2-29.4V63.1l-2.4-1.3-49.8 28L5.6 63.6V52.8l46.7 26.2 52.2-29.4V29.5L101.9 28l-49.6 27.9L8 31.1l44.3-24.9 36.4 20.5 3.2-1.8v-2.5L52.3 0.1 0 29.5v3.2l52.3 29.4L98.9 35.8v10.8Z" fill="#FF3621"/>
+        <path d="M202.2 96.2V6.4h-13.8v33.6c0 .5-.3.9-.8 1.1-.5.2-1 0-1.3-.3-4.7-5.5-12-8.6-20-8.6-17.1 0-30.5 14.4-30.5 32.8 0 9 3.1 17.3 8.8 23.4 5.7 6.1 13.4 9.4 21.7 9.4 7.9 0 15.2-3.3 20-9 .3-.4.9-.5 1.3-.4.5.2.8.6.8 1.1v6.7h13.8ZM169.3 85.3c-11 0-19.6-8.9-19.6-20.3s8.6-20.3 19.6-20.3 19.6 8.9 19.6 20.3-8.6 20.3-19.6 20.3ZM276 96.1V33.7h-13.7V40c0 .5-.3.9-.8 1.1-.5.2-1 0-1.3-.4-4.6-5.5-11.8-8.6-20-8.6-17.1 0-30.5 14.4-30.5 32.8s13.4 32.8 30.5 32.8c7.9 0 15.2-3.3 20-9.1.3-.4.9-.5 1.3-.4.5.2.8.6.8 1.1v6.8H276ZM243.3 85.3c-11 0-19.6-8.9-19.6-20.3s8.6-20.3 19.6-20.3 19.6 8.9 19.6 20.3-8.6 20.3-19.6 20.3ZM314.4 97.2c4.4 0 8.3-.4 10.5-.7v-12c-1.8.2-5 .4-6.9.4-5.6 0-9.9-1-9.9-13.1V46.1c0-.7.5-1.2 1.2-1.2h13.5V33.6h-13.5c-.7 0-1.2-.5-1.2-1.2V14.4h-13.8v18.1c0 .7-.5 1.2-1.2 1.2H283.5v11.3h9.6c.7 0 1.2.5 1.2 1.2v29.1c0 21.9 14.6 21.9 20.1 21.9ZM393.3 96.2V33.7h-13.7V40c0 .5-.3.9-.8 1.1-.5.2-1 0-1.3-.4-4.6-5.5-11.8-8.6-20-8.6-17.2 0-30.5 14.4-30.5 32.9s13.4 32.8 30.5 32.8c7.9 0 15.2-3.3 20-9.1.3-.4.9-.5 1.3-.4.5.2.8.6.8 1.1v6.8h13.7ZM360.6 85.3c-11 0-19.6-8.9-19.6-20.3s8.6-20.3 19.6-20.3 19.6 8.9 19.6 20.3-8.6 20.3-19.6 20.3ZM418.4 88.8c.1 0 .3-.1.4-.1.3 0 .7.2.9.4 4.7 5.5 12 8.6 20 8.6 17.1 0 30.5-14.4 30.5-32.8 0-9-3.1-17.3-8.8-23.4-5.7-6.1-13.4-9.4-21.7-9.4-7.9 0-15.2 3.3-20 9-.3.4-.8.5-1.3.4-.5-.2-.8-.6-.8-1.1V6.4h-13.8v89.8h13.8v-6.3c0-.5.3-.9.8-1.1ZM417 65c0-11.4 8.6-20.3 19.6-20.3s19.6 8.9 19.6 20.3-8.6 20.3-19.6 20.3-19.6-9-19.6-20.3ZM510.1 46.5c1.3 0 2.5.1 3.3.3V32.6c-.5-.1-1.4-.2-2.3-.2-7.2 0-13.8 3.7-17.3 9.6-.3.5-.8.7-1.3.5-.5-.1-.9-.6-.9-1.1v-7.7h-13.7v62.6h13.8V68.7c0-13.7 7-22.2 18.4-22.2ZM536.1 33.7h-14v62.6h14V33.7ZM528.9 6.5c-4.7 0-8.5 3.8-8.5 8.5s3.8 8.5 8.5 8.5 8.5-3.8 8.5-8.5-3.8-8.5-8.5-8.5ZM577.1 32.1c-19.2 0-33.1 13.8-33.1 32.9 0 9.3 3.3 17.6 9.2 23.6 6 6 14.4 9.3 23.8 9.3 7.8 0 13.8-1.5 25.2-9.9l-7.9-8.3c-5.6 3.7-10.8 5.5-15.9 5.5-11.6 0-20.3-8.7-20.3-20.2s8.7-20.2 20.3-20.2c5.5 0 10.6 1.8 15.7 5.5l8.8-8.3c-10.3-8.8-19.6-9.9-25.8-9.9ZM626.5 68.7c.2-.2.5-.3.8-.3h.1c.3 0 .6.2.9.4l22.1 27.4h17l-28.6-34.6c-.4-.5-.4-1.2.1-1.6l26.3-26.3h-16.9l-22.7 22.8c-.3.3-.8.4-1.3.3-.4-.2-.7-.6-.7-1.1V6.5h-13.9v89.8h13.8V71.9c0-.3.1-.7.4-.9l2.6-2.3ZM689.9 97.8c11.3 0 22.8-6.9 22.8-20 0-8.6-5.4-14.5-16.4-18.1l-7.5-2.5c-5.1-1.7-7.5-4.1-7.5-7.4 0-3.8 3.4-6.4 8.2-6.4 4.6 0 8.7 3 11.3 8.2l11.1-6c-4.1-8.4-12.6-13.6-22.4-13.6-12.4 0-21.4 8-21.4 18.9 0 8.7 5.2 14.5 15.9 17.9l7.7 2.5c5.4 1.7 7.7 3.9 7.7 7.4 0 5.3-4.9 7.2-9.1 7.2-5.6 0-10.6-3.6-13-9.5l-11.3 6c3.7 9.5 12.8 15.4 23.9 15.4Z" fill="#FFFFFF"/>
+      </svg>
+      <h1 style="font-size:clamp(2rem,4vw,3.5rem); margin-bottom:1.5rem;">Thanks.</h1>
+      <div class="accent-line" style="margin-left:auto; margin-right:auto;"></div>
+      <p class="lead" style="margin: 1.5rem auto; max-width: 720px;">
+        The bundle, the catalog, and the app are all live in <code>fevm</code>. Happy to walk through any layer — ingestion, the graph model, the detectors, or the app — in as much depth as you want.
+      </p>
+      <p style="font-family: var(--font-mono); font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-top: 2.5rem;">
+        Unity Catalog · <span style="color: var(--db-lava);">gold layer</span>
+      </p>
+    </div>
+  </section>
+
+  <script>
+    class SlidePresentation {
+      constructor() {
+        this.slides = document.querySelectorAll('.slide');
+        this.progressBar = document.querySelector('.progress-bar');
+        this.navDots = document.querySelector('.nav-dots');
+        this.currentSlide = 0;
+        this.init();
+      }
+      init() {
+        this.createNavDots();
+        this.setupIntersectionObserver();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.updateProgress();
+      }
+      createNavDots() {
+        this.slides.forEach((_, i) => {
+          const dot = document.createElement('button');
+          dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+          dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+          dot.addEventListener('click', () => this.goToSlide(i));
+          this.navDots.appendChild(dot);
+        });
+      }
+      setupIntersectionObserver() {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const idx = [...this.slides].indexOf(entry.target);
+              this.currentSlide = idx;
+              this.updateDots();
+              this.updateProgress();
+            }
+          });
+        }, { threshold: 0.5 });
+        this.slides.forEach(s => observer.observe(s));
+      }
+      setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+            e.preventDefault();
+            this.goToSlide(this.currentSlide + 1);
+          } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+            e.preventDefault();
+            this.goToSlide(this.currentSlide - 1);
+          }
+        });
+      }
+      setupTouchNav() {
+        let startY = 0;
+        document.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+          const diff = startY - e.changedTouches[0].clientY;
+          if (Math.abs(diff) > 50) this.goToSlide(this.currentSlide + (diff > 0 ? 1 : -1));
+        }, { passive: true });
+      }
+      goToSlide(idx) {
+        const t = Math.max(0, Math.min(idx, this.slides.length - 1));
+        this.slides[t].scrollIntoView({ behavior: 'instant' });
+      }
+      updateDots() {
+        this.navDots.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === this.currentSlide));
+      }
+      updateProgress() {
+        const pct = ((this.currentSlide + 1) / this.slides.length) * 100;
+        this.progressBar.style.width = pct + '%';
+        this.progressBar.setAttribute('aria-valuenow', Math.round(pct));
+      }
+    }
+    new SlidePresentation();
+  </script>
+</body>
+</html>

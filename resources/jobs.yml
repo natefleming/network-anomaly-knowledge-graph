@@ -1,0 +1,82 @@
+resources:
+  jobs:
+    generate_bronze_sql:
+      name: "Network Anomaly — Generate Bronze SQL"
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: generate
+          notebook_task:
+            notebook_path: ../notebooks/00_generate_bronze_sql.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume_name}
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+            dependencies:
+              - faker
+              - numpy
+              - pandas
+
+    load_bronze:
+      name: "Network Anomaly — Load Bronze + Run Pipeline"
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: load_bronze
+          notebook_task:
+            notebook_path: ../notebooks/01_load_bronze_from_sql.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              data_dir: ${var.notebook_root}/data
+              warehouse_id: ${var.warehouse_id}
+          environment_key: default
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: load_bronze
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.network_anomaly_pipeline.id}
+            full_refresh: true
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+            dependencies:
+              - databricks-sdk
+
+    graph_analytics:
+      name: "Network Anomaly — Graph Analytics (GraphFrames)"
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: analytics
+          notebook_task:
+            notebook_path: ../notebooks/02_graph_analytics.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+            dependencies:
+              - graphframes-py
+
+    anomaly_queries:
+      name: "Network Anomaly — Queries"
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: queries
+          notebook_task:
+            notebook_path: ../notebooks/03_anomaly_queries.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"

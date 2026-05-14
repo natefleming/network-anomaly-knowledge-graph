@@ -1,0 +1,20 @@
+resources:
+  pipelines:
+    network_anomaly_pipeline:
+      name: "Network Anomaly Knowledge Graph"
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      photon: true
+      channel: PREVIEW
+      continuous: false
+      edition: ADVANCED
+      libraries:
+        - glob:
+            include: ../pipelines/**
+      configuration:
+        catalog: ${var.catalog}
+        schema: ${var.schema}
+      permissions:
+        - level: CAN_VIEW
+          group_name: users
